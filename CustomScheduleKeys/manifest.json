@@ -1,0 +1,9 @@
+{
+    "Name": "Custom Schedule Keys",
+    "Author": "Spiderbuttons",
+    "Version": "1.0.0",
+    "Description": "Create custom schedule keys for NPCs to use that activate according to GSQ conditions.",
+    "UniqueID": "Spiderbuttons.CustomScheduleKeys",
+    "EntryDll": "CustomScheduleKeys.dll",
+    "UpdateKeys": []
+}
