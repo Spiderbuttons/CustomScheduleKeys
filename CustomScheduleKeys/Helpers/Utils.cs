@@ -1,13 +1,10 @@
-﻿using System;
-using CustomScheduleKeys.Helpers;
-using StardewModdingAPI.Events;
-using StardewValley;
+﻿using StardewModdingAPI;
 
-namespace CustomScheduleKeys;
+namespace CustomScheduleKeys.Helpers;
 
-public partial class ScheduleData
+public class Utils
 {
-    public int GetPriority()
+    public static IModInfo? TryGetModFromString(string? id)
     {
         /* ---------------------------------------------------------------------------
 
@@ -35,26 +32,20 @@ public partial class ScheduleData
 
         --------------------------------------------------------------------------- */
         
-        if (string.IsNullOrWhiteSpace(this.Priority)) return 0;
-        if (Utility.TryParseEnum(this.Priority, out AssetEditPriority parsed))
+        if (string.IsNullOrWhiteSpace(id)) return null;
+        string[] parts = id.Split('_');
+        if (parts.Length == 1) return null;
+
+        string modId = parts[0];
+        int idIndex = parts.Length - 1;
+        for (int i = 0; i < idIndex; i++)
         {
-            return (int)parsed;
+            if (i != 0) modId += '_' + parts[i];
+
+            IModInfo? mod = ModEntry.ModHelper.ModRegistry.Get(modId);
+            if (mod != null) return mod;
         }
-        int splitAt = this.Priority.IndexOfAny(['-', '+']);
-        if (splitAt > 0)
-        {
-            string rawPriority = this.Priority.Substring(0, splitAt);
-            char rawSign = this.Priority[splitAt];
-            string priority = this.Priority;
-            int num = splitAt + 1;
-            string rawOffset = priority.Substring(num, priority.Length - num);
-            if (Utility.TryParseEnum(rawPriority, out parsed) && int.TryParse(rawOffset, out var offset))
-            {
-                if (rawSign == '-') offset *= -1;
-                return ((int)parsed + offset);
-            }
-        }
-        Log.Error($"ScheduleData with Id '{this.Id}' has an invalid priority value '{this.Priority}.' It must be one of [{string.Join(", ", Enum.GetNames(typeof(AssetEditPriority)))}] or a priority with an optional sign and offset (e.g. 'Late + 10').");
-        return 0;
+
+        return null;
     }
 }
