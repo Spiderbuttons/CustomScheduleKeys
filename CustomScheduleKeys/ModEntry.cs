@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
-using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
-using StardewModdingAPI.Utilities;
 using StardewValley;
 using CustomScheduleKeys.Helpers;
-using StardewValley.Extensions;
 
 namespace CustomScheduleKeys
 {
@@ -19,7 +15,7 @@ namespace CustomScheduleKeys
         public string? ScheduleKey { get; set; }
         public string? Priority { get; set; }
         public string? Condition { get; set; }
-        private string? ModId => Utils.TryGetModFromString(ScheduleKey)?.Manifest.UniqueID;
+        private string? ModId => TryGetModFromKey()?.Manifest.UniqueID;
 
         public bool HasValidKey()
         {
@@ -37,8 +33,12 @@ namespace CustomScheduleKeys
         internal static IMonitor ModMonitor { get; private set; } = null!;
         private static Harmony Harmony { get; set; } = null!;
         
-        internal static List<ScheduleData>? _schedules { get; private set; } = null;
-        internal static List<ScheduleData> Schedules
+        public static string? DebugScheduleKey { get; set; }
+
+        private static List<ScheduleData>? _schedules { get; set; }
+        private static List<ScheduleData>? _sortedSchedules { get; set; }
+
+        private static List<ScheduleData> Schedules
         {
             get
             {
@@ -49,7 +49,7 @@ namespace CustomScheduleKeys
         {
             get
             {
-                return Schedules.Where(sched => sched.HasValidKey()).OrderBy(sched => ModHelper.ModRegistry.GetAll().ToList().IndexOf(Utils.TryGetModFromString(sched.ScheduleKey)!)).ThenBy(x => x.GetPriority()).ToList();
+                return _sortedSchedules ??= Schedules.Where(sched => sched.HasValidKey()).OrderBy(sched => ModHelper.ModRegistry.GetAll().ToList().IndexOf(sched.TryGetModFromKey()!)).ThenBy(x => x.GetPriority()).ToList();
             }
         }
 
@@ -59,18 +59,32 @@ namespace CustomScheduleKeys
             ModMonitor = Monitor;
             Harmony = new Harmony(ModManifest.UniqueID);
 
-            Harmony.PatchAll();
+            Harmony.Patch(original: AccessTools.Method(typeof(NPC), nameof(NPC.TryLoadSchedule), []), prefix: new HarmonyMethod(typeof(SchedulePatch), nameof(SchedulePatch.TryLoadSchedule_Prefix)));
+            Harmony.Patch(original: AccessTools.Method(typeof(Game1), nameof(Game1.doMorningStuff)), postfix: new HarmonyMethod(typeof(SchedulePatch), nameof(SchedulePatch.doMorningStuff_Postfix)));
+            
+            Helper.Events.Content.AssetRequested += OnAssetRequested;
+            Helper.Events.Content.AssetsInvalidated += OnAssetsInvalidated;
 
-            Helper.Events.Input.ButtonPressed += this.OnButtonPressed;
-            Helper.Events.Content.AssetRequested += this.OnAssetRequested;
-            Helper.Events.Content.AssetsInvalidated += this.OnAssetsInvalidated;
+            Helper.ConsoleCommands.Add("csk_force",
+                "Force all NPCs to use a specific schedule tomorrow, if they have it.\n\nUsage: csk_force <schedule key>\n- Example: csk_force spring_Mon",
+                (_, args) =>
+                {
+                    if (args.Length < 1)
+                    {
+                        Log.Error("You must specify a schedule key.");
+                        return;
+                    }
+
+                    DebugScheduleKey = args[0];
+                    Log.Info($"All NPCs will attempt to use schedule key '{DebugScheduleKey}' tomorrow.");
+                });
         }
 
         private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
         {
             if (e.NameWithoutLocale.IsEquivalentTo($"Spiderbuttons.CustomScheduleKeys/Schedules"))
             {
-                Log.Debug("Loading...");
+                Log.Trace("Loading custom schedule keys...");
                 e.LoadFrom(() => new List<ScheduleData>(), AssetLoadPriority.Medium);
             }
         }
@@ -79,29 +93,9 @@ namespace CustomScheduleKeys
         {
             if (e.NamesWithoutLocale.Any(name => name.IsEquivalentTo($"Spiderbuttons.CustomScheduleKeys/Schedules")))
             {
-                Log.Debug("Invalidating...");
+                Log.Trace("Invalidating custom schedule keys...");
                 _schedules = null;
-            }
-        }
-
-        private void OnButtonPressed(object? sender, ButtonPressedEventArgs e)
-        {
-            // if (!Context.IsWorldReady)
-            //     return;
-
-            if (e.Button is SButton.F2)
-            {
-                Helper.GameContent.InvalidateCache("Spiderbuttons.CustomScheduleKeys/Schedules");
-                Log.Debug(Schedules.Count);
-                foreach (var schedule in Schedules)
-                {
-                    // log all the fields
-                    Log.Debug($"Id: {schedule.Id}");
-                    Log.Debug($"ScheduleKey: {schedule.ScheduleKey}");
-                    Log.Debug($"Priority: {schedule.Priority} (Parsed: {schedule.GetPriority()})");
-                    Log.Debug($"Condition: {schedule.Condition}");
-                    Log.Debug("--------------------");
-                }
+                _sortedSchedules = null;
             }
         }
     }

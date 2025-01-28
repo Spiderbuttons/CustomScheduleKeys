@@ -1,5 +1,6 @@
 ﻿using System;
 using CustomScheduleKeys.Helpers;
+using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
 
@@ -7,9 +8,9 @@ namespace CustomScheduleKeys;
 
 public partial class ScheduleData
 {
-    public int GetPriority()
-    {
-        /* ---------------------------------------------------------------------------
+    /* -----------------------------------------------------------------------------------
+
+        THE FOLLOWING LICENSE APPLIES TO THE CODE IN THIS FILE:
 
         The MIT License (MIT)
 
@@ -33,8 +34,10 @@ public partial class ScheduleData
         OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
         SOFTWARE.
 
-        --------------------------------------------------------------------------- */
-        
+    ----------------------------------------------------------------------------------- */
+    
+    public int GetPriority()
+    {
         if (string.IsNullOrWhiteSpace(this.Priority)) return 0;
         if (Utility.TryParseEnum(this.Priority, out AssetEditPriority parsed))
         {
@@ -54,7 +57,26 @@ public partial class ScheduleData
                 return ((int)parsed + offset);
             }
         }
-        Log.Error($"ScheduleData with Id '{this.Id}' has an invalid priority value '{this.Priority}.' It must be one of [{string.Join(", ", Enum.GetNames(typeof(AssetEditPriority)))}] or a priority with an optional sign and offset (e.g. 'Late + 10').");
+        Log.Error($"ScheduleData with Id '{Id}' has an invalid priority value '{Priority}.' It must be one of [{string.Join(", ", Enum.GetNames(typeof(AssetEditPriority)))}] or a priority with an optional sign and offset (e.g. 'Late + 10').");
         return 0;
+    }
+    
+    public IModInfo? TryGetModFromKey()
+    {
+        if (string.IsNullOrWhiteSpace(ScheduleKey)) return null;
+        string[] parts = ScheduleKey.Split('_');
+        if (parts.Length == 1) return null;
+
+        string modId = parts[0];
+        int idIndex = parts.Length - 1;
+        for (int i = 0; i < idIndex; i++)
+        {
+            if (i != 0) modId += '_' + parts[i];
+
+            IModInfo? mod = ModEntry.ModHelper.ModRegistry.Get(modId);
+            if (mod != null) return mod;
+        }
+
+        return null;
     }
 }
