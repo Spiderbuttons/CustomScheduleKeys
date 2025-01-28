@@ -8,8 +8,8 @@ using CustomScheduleKeys.Helpers;
 
 namespace CustomScheduleKeys
 {
-    // See ScheduleData.cs
-    public partial class ScheduleData
+    // See ScheduleKeyData.cs
+    public partial class ScheduleKeyData
     {
         public string? Id { get; set; }
         public string? ScheduleKey { get; set; }
@@ -21,7 +21,7 @@ namespace CustomScheduleKeys
         {
             if (ModId is not null) return true;
             
-            Log.Error($"ScheduleData with Id '{Id}' has an invalid ScheduleKey value '{ScheduleKey}'. It must be prefixed with the mods UniqueId.");
+            Log.Error($"ScheduleKeyData with Id '{Id}' has an invalid ScheduleKey value '{ScheduleKey}'. It must be prefixed with the mod's UniqueId.");
             return false;
 
         }
@@ -35,21 +35,21 @@ namespace CustomScheduleKeys
         
         public static string? DebugScheduleKey { get; set; }
 
-        private static List<ScheduleData>? _schedules { get; set; }
-        private static List<ScheduleData>? _sortedSchedules { get; set; }
+        private static List<ScheduleKeyData>? _schedules { get; set; }
+        private static List<ScheduleKeyData>? _sortedSchedules { get; set; }
 
-        private static List<ScheduleData> Schedules
+        private static List<ScheduleKeyData> Schedules
         {
             get
             {
-                return _schedules ??= Game1.content.Load<List<ScheduleData>>($"Spiderbuttons.CustomScheduleKeys/Schedules");
+                return _schedules ??= Game1.content.Load<List<ScheduleKeyData>>($"Spiderbuttons.CustomScheduleKeys/ScheduleKeys");
             }
         }
-        internal static List<ScheduleData> SortedSchedules
+        internal static List<ScheduleKeyData> SortedSchedules
         {
             get
             {
-                return _sortedSchedules ??= Schedules.Where(sched => sched.HasValidKey()).OrderBy(sched => ModHelper.ModRegistry.GetAll().ToList().IndexOf(sched.TryGetModFromKey()!)).ThenBy(x => x.GetPriority()).ToList();
+                return _sortedSchedules ??= Schedules.Where(sched => sched.HasValidKey()).OrderBy(x => x.GetPriority()).ThenBy(sched => ModHelper.ModRegistry.GetAll().ToList().IndexOf(sched.TryGetModFromKey()!)).ToList();
             }
         }
 
@@ -82,16 +82,16 @@ namespace CustomScheduleKeys
 
         private void OnAssetRequested(object? sender, AssetRequestedEventArgs e)
         {
-            if (e.NameWithoutLocale.IsEquivalentTo($"Spiderbuttons.CustomScheduleKeys/Schedules"))
+            if (e.NameWithoutLocale.IsEquivalentTo($"Spiderbuttons.CustomScheduleKeys/ScheduleKeys"))
             {
                 Log.Trace("Loading custom schedule keys...");
-                e.LoadFrom(() => new List<ScheduleData>(), AssetLoadPriority.Medium);
+                e.LoadFrom(() => new List<ScheduleKeyData>(), AssetLoadPriority.Medium);
             }
         }
 
         private void OnAssetsInvalidated(object? sender, AssetsInvalidatedEventArgs e)
         {
-            if (e.NamesWithoutLocale.Any(name => name.IsEquivalentTo($"Spiderbuttons.CustomScheduleKeys/Schedules")))
+            if (e.NamesWithoutLocale.Any(name => name.IsEquivalentTo($"Spiderbuttons.CustomScheduleKeys/ScheduleKeys")))
             {
                 Log.Trace("Invalidating custom schedule keys...");
                 _schedules = null;

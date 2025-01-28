@@ -6,7 +6,7 @@ using StardewValley;
 
 namespace CustomScheduleKeys;
 
-public partial class ScheduleData
+public partial class ScheduleKeyData
 {
     /* -----------------------------------------------------------------------------------
 
@@ -57,7 +57,7 @@ public partial class ScheduleData
                 return ((int)parsed + offset);
             }
         }
-        Log.Error($"ScheduleData with Id '{Id}' has an invalid priority value '{Priority}.' It must be one of [{string.Join(", ", Enum.GetNames(typeof(AssetEditPriority)))}] or a priority with an optional sign and offset (e.g. 'Late + 10').");
+        Log.Error($"ScheduleKeyData with Id '{Id}' has an invalid priority value '{Priority}.' It must be one of [{string.Join(", ", Enum.GetNames(typeof(AssetEditPriority)))}] or a priority with an optional sign and offset (e.g. 'Late + 10').");
         return 0;
     }
     
