@@ -5,5 +5,5 @@
     "Description": "Create custom schedule keys for NPCs to use that apply according to GSQ conditions.",
     "UniqueID": "Spiderbuttons.CustomScheduleKeys",
     "EntryDll": "CustomScheduleKeys.dll",
-    "UpdateKeys": []
+    "UpdateKeys": [ "Nexus:31271" ]
 }
